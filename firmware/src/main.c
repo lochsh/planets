@@ -23,7 +23,9 @@ static void timer_setup(void) {
             TIM_CR1_CKD_CK_INT,
             TIM_CR1_CMS_EDGE,
             TIM_CR1_DIR_UP);
+
     timer_set_oc_mode(TIM3, TIM_OC3, TIM_OCM_PWM2);
+    timer_set_oc_value(TIM3, TIM_OC3, 3360);
     timer_enable_oc_output(TIM3, TIM_OC3);
 
     timer_set_period(TIM3, 5250);
