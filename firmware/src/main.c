@@ -1,6 +1,11 @@
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/f4/timer.h>
+
+#define DUTY_CYCLE_1 67
+#define DUTY_CYCLE_0 34
+#define BIT_PERIOD   105
 
 
 static void clock_setup(void) {
@@ -25,12 +30,19 @@ static void timer_setup(void) {
             TIM_CR1_DIR_UP);
 
     timer_set_oc_mode(TIM3, TIM_OC3, TIM_OCM_PWM1);
-    timer_set_oc_value(TIM3, TIM_OC3, 67);
+    timer_set_oc_value(TIM3, TIM_OC3, DUTY_CYCLE_1);
     timer_enable_oc_output(TIM3, TIM_OC3);
 
-    timer_set_period(TIM3, 105);
+    timer_enable_irq(TIM3, TIM_DIER_CC3IE);
+    nvic_enable_irq(NVIC_TIM3_IRQ);
+
+    timer_set_period(TIM3, BIT_PERIOD);
     timer_set_prescaler(TIM3, 0);
     timer_enable_counter(TIM3);
+}
+
+
+void tim3_isr(void) {
 }
 
 
