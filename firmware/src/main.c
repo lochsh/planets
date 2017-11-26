@@ -25,9 +25,16 @@ static void timer_setup(void) {
             TIM_CR1_DIR_UP);
     timer_set_oc_mode(TIM3, TIM_OC3, TIM_OCM_PWM2);
     timer_enable_oc_output(TIM3, TIM_OC3);
+
+    timer_set_period(TIM3, 5250);
+    timer_set_prescaler(TIM3, 0);
+    timer_enable_counter(TIM3);
 }
 
 
 int main(void) {
+    clock_setup();
+    gpio_setup();
+    timer_setup();
     return 0;
 }
