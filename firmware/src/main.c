@@ -1,62 +1,33 @@
-/*
- * This file is part of the libopencm3 project.
- *
- * Copyright (C) 2009 Uwe Hermann <uwe@hermann-uwe.de>
- * Copyright (C) 2011 Damjan Marion <damjan.marion@gmail.com>
- * Copyright (C) 2011 Mark Panajotovic <marko@electrontube.org>
- * Copyright (C) 2017 Piotr Esden-Tempski <piotr@esden.net>
- *
- * This library is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-#include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/f4/timer.h>
 
-/* Set STM32 to 168 MHz. */
-static void clock_setup(void)
-{
+
+static void clock_setup(void) {
     rcc_clock_setup_hse_3v3(&rcc_hse_25mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
-
-    /* Enable GPIOA clock. */
-    rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOB);
+    rcc_periph_clock_enable(RCC_TIM3);
 }
 
-static void gpio_setup(void)
-{
-    /* Set GPIO8 (in GPIO port A) to 'output push-pull'. */
-    gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT,
-            GPIO_PUPD_NONE, GPIO8);
+
+static void gpio_setup(void) {
+    gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0);
+    gpio_set_af(GPIOB, GPIO_AF2, GPIO0);
 }
 
-int main(void)
-{
-    int i;
 
-    clock_setup();
-    gpio_setup();
+static void timer_setup(void) {
+    timer_reset(TIM3);
+    timer_set_mode(
+            TIM3,
+            TIM_CR1_CKD_CK_INT,
+            TIM_CR1_CMS_EDGE,
+            TIM_CR1_DIR_UP);
+    timer_set_oc_mode(TIM3, TIM_OC3, TIM_OCM_PWM2);
+    timer_enable_oc_output(TIM3, TIM_OC3);
+}
 
-    /* Set two LEDs for wigwag effect when toggling. */
-    gpio_set(GPIOA, GPIO8);
 
-    /* Blink the LEDs (PA8) on the board. */
-    while (1) {
-        /* Toggle LEDs. */
-        gpio_toggle(GPIOA, GPIO8);
-        for (i = 0; i < 6000000; i++) { /* Wait a bit. */
-            __asm__("nop");
-        }
-    }
-
+int main(void) {
     return 0;
 }
