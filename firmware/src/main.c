@@ -46,7 +46,8 @@ static void pattern_to_bit_sequence(void) {
         for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
             const size_t shift = BITS_PER_CHANNEL - i - 1;
 
-            bit_sequence[i + offset] = (current_led.green >> shift) & 1;
+            bit_sequence[i + offset] =
+                (current_led.green >> shift) & 1;
 
             bit_sequence[i + BITS_PER_CHANNEL + offset] =
                 (current_led.red >> shift) & 1;
@@ -100,18 +101,19 @@ void tim3_isr(void) {
 
     timer_clear_flag(TIM3, TIM_SR_CC3IF);
 
-    timer_set_period(TIM3, BIT_PERIOD);
-    timer_set_oc_value(
-            TIM3,
-            TIM_OC3,
-            *current_bit ? DUTY_CYCLE_1: DUTY_CYCLE_0);
-    current_bit++;
-
     if ((current_bit - bit_sequence) >= (BITS_PER_LED * NUM_LEDS)) {
         timer_set_period(TIM3, RESET_PERIOD);
         timer_set_oc_value(TIM3, TIM_OC3, 0);
         current_bit = &bit_sequence[0];
+    } else {
+        timer_set_period(TIM3, BIT_PERIOD);
+        timer_set_oc_value(
+                TIM3,
+                TIM_OC3,
+                *current_bit ? DUTY_CYCLE_1: DUTY_CYCLE_0);
+        current_bit++;
     }
+
 }
 
 
