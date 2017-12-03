@@ -29,10 +29,10 @@ static uint8_t* current_bit;
 
 static void bi_pride_gradient(void) {
 
-    for (size_t l = 0; l < NUM_LEDS; l++) {
-        pattern[l].green = 10;
-        pattern[l].red = NUM_LEDS - (l * 5);
-        pattern[l].blue = l * 5;
+    for (size_t led_idx = 0; led_idx < NUM_LEDS; led_idx++) {
+        pattern[led_idx].green = 10;
+        pattern[led_idx].red = NUM_LEDS - (led_idx * 5);
+        pattern[led_idx].blue = led_idx * 5;
     }
 }
 
