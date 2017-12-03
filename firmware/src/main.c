@@ -10,7 +10,7 @@
 #define DUTY_CYCLE_1        67
 #define RESET_PERIOD        7500
 #define BIT_PERIOD          105
-#define NUM_LEDS            5
+#define NUM_LEDS            10
 #define BITS_PER_CHANNEL    8
 #define NUM_CHANNELS        3
 #define BITS_PER_LED        (BITS_PER_CHANNEL * NUM_CHANNELS)
@@ -22,10 +22,15 @@ typedef struct {
 } led_t;
 
 
-static led_t pattern[NUM_LEDS] = {{.blue=255}, {.blue=255}, {.blue=255},
-                                  {.blue=255}, {.blue=255}};
-static led_t* current_led;
-static uint8_t bit_sequence[BITS_PER_LED];
+static led_t pattern[NUM_LEDS] = {{.green=255}, {.red=255}, {.blue=255},
+                                  {.green=255, .red=255},
+                                  {.green=255, .red=255},
+                                  {.green=255, .red=255},
+                                  {.green=255, .red=255},
+                                  {.green=255, .red=255},
+                                  {.green=255, .red=255},
+                                  {.blue=255, .green=255}};
+static uint8_t bit_sequence[BITS_PER_LED * NUM_LEDS];
 static uint8_t* current_bit;
 
 
@@ -39,17 +44,23 @@ static void rainbow_gradient(void) {
 }
 
 
-static void led_to_bit_sequence(void) {
+static void pattern_to_bit_sequence(void) {
 
-    for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
-        const size_t shift = BITS_PER_CHANNEL - i - 1;
+    for (size_t led_idx = 0; led_idx < NUM_LEDS; led_idx++) {
+        const led_t current_led = pattern[led_idx];
+        const size_t offset = led_idx * BITS_PER_LED;
 
-        bit_sequence[i] = (current_led->green >> shift) & 1;
+        for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
+            const size_t shift = BITS_PER_CHANNEL - i - 1;
 
-        bit_sequence[i + BITS_PER_CHANNEL] = (current_led->red >> shift) & 1;
+            bit_sequence[i + offset] = (current_led.green >> shift) & 1;
 
-        bit_sequence[i + (2 * BITS_PER_CHANNEL)] =
-            (current_led->blue >> shift) & 1;
+            bit_sequence[i + BITS_PER_CHANNEL + offset] =
+                (current_led.red >> shift) & 1;
+
+            bit_sequence[i + (2 * BITS_PER_CHANNEL) + offset] =
+                (current_led.blue >> shift) & 1;
+        }
     }
 }
 
@@ -103,16 +114,10 @@ void tim3_isr(void) {
     timer_set_period(TIM3, BIT_PERIOD);
     current_bit++;
 
-    if ((current_bit - bit_sequence) >= (BITS_PER_LED)) {
-
-        if ((current_led - pattern) == NUM_LEDS) {
-            timer_set_oc_value(TIM3, TIM_OC3, 0);
-            timer_set_period(TIM3, RESET_PERIOD);
-        } else {
-            current_led++;
-            led_to_bit_sequence();
-            current_bit = &bit_sequence[0];
-        }
+    if ((current_bit - bit_sequence) >= (BITS_PER_LED * NUM_LEDS)) {
+        timer_set_oc_value(TIM3, TIM_OC3, 0);
+        timer_set_period(TIM3, RESET_PERIOD);
+        current_bit = &bit_sequence[0];
     }
 }
 
@@ -122,8 +127,7 @@ int main(void) {
     gpio_setup();
 
     // rainbow_gradient();
-    current_led = &pattern[0];
-    led_to_bit_sequence();
+    pattern_to_bit_sequence();
     current_bit = &bit_sequence[0];
 
     timer_setup();
