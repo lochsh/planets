@@ -10,7 +10,7 @@
 #define DUTY_CYCLE_1        67
 #define RESET_PERIOD        7500
 #define BIT_PERIOD          105
-#define NUM_LEDS            10
+#define NUM_LEDS            300
 #define BITS_PER_CHANNEL    8
 #define NUM_CHANNELS        3
 #define BITS_PER_LED        (BITS_PER_CHANNEL * NUM_CHANNELS)
@@ -22,24 +22,17 @@ typedef struct {
 } led_t;
 
 
-static led_t pattern[NUM_LEDS] = {{.green=255}, {.red=255}, {.blue=255},
-                                  {.green=255, .red=255},
-                                  {.green=255, .red=255},
-                                  {.green=255, .red=255},
-                                  {.green=255, .red=255},
-                                  {.green=255, .red=255},
-                                  {.green=255, .red=255},
-                                  {.blue=255, .green=255}};
+static led_t pattern[NUM_LEDS];
 static uint8_t bit_sequence[BITS_PER_LED * NUM_LEDS];
 static uint8_t* current_bit;
 
 
-static void rainbow_gradient(void) {
+static void bi_pride_gradient(void) {
 
     for (size_t l = 0; l < NUM_LEDS; l++) {
         pattern[l].green = 10;
-        pattern[l].red = NUM_LEDS - l;
-        pattern[l].blue = l;
+        pattern[l].red = NUM_LEDS - (l * 5);
+        pattern[l].blue = l * 5;
     }
 }
 
@@ -107,16 +100,16 @@ void tim3_isr(void) {
 
     timer_clear_flag(TIM3, TIM_SR_CC3IF);
 
+    timer_set_period(TIM3, BIT_PERIOD);
     timer_set_oc_value(
             TIM3,
             TIM_OC3,
             *current_bit ? DUTY_CYCLE_1: DUTY_CYCLE_0);
-    timer_set_period(TIM3, BIT_PERIOD);
     current_bit++;
 
     if ((current_bit - bit_sequence) >= (BITS_PER_LED * NUM_LEDS)) {
-        timer_set_oc_value(TIM3, TIM_OC3, 0);
         timer_set_period(TIM3, RESET_PERIOD);
+        timer_set_oc_value(TIM3, TIM_OC3, 0);
         current_bit = &bit_sequence[0];
     }
 }
@@ -126,7 +119,7 @@ int main(void) {
     clock_setup();
     gpio_setup();
 
-    // rainbow_gradient();
+    bi_pride_gradient();
     pattern_to_bit_sequence();
     current_bit = &bit_sequence[0];
 
