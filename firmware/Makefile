@@ -19,6 +19,7 @@
 
 PREFIX		?= arm-none-eabi
 #PREFIX		?= arm-elf
+BMP_PORT = $(wildcard /dev/cu.usbmodemE3BFB8A1)
 
 # Be silent per default, but 'make V=1' will show all compiler calls.
 ifneq ($(V),1)
@@ -29,7 +30,7 @@ endif
 
 # In case you are using an older compiler or want to set the C standard to a
 # specific version globally for the project this is where that would go.
-#CFLAGS += -std=gnu11
+CFLAGS += -std=c11 -O2
 
 OPENCM3_DIR := $(realpath libopencm3)
 BUILD_RULES = elf
@@ -49,6 +50,16 @@ list: build
 images: build
 
 build: lib src
+
+power:
+	arm-none-eabi-gdb --batch \
+	                  -ex 'target extended-remote $(BMP_PORT)' \
+		              -ex 'monitor tpwr enable'
+
+unpower:
+	arm-none-eabi-gdb --batch \
+		              -ex 'target extended-remote $(BMP_PORT)' \
+		              -ex 'monitor tpwr disable'
 
 lib:
 	$(Q)if [ ! "`ls -A libopencm3`" ] ; then \

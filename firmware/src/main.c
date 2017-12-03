@@ -1,11 +1,59 @@
+#include <stdint.h>
+#include <stdlib.h>
+
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/f4/timer.h>
 
-#define DUTY_CYCLE_1 67
-#define DUTY_CYCLE_0 34
-#define BIT_PERIOD   105
+#define DUTY_CYCLE_0        34
+#define DUTY_CYCLE_1        67
+#define RESET_PERIOD        7500
+#define BIT_PERIOD          105
+#define NUM_LEDS            100
+#define BITS_PER_CHANNEL    8
+#define NUM_CHANNELS        3
+#define BITS_PER_LED        (BITS_PER_CHANNEL * NUM_CHANNELS)
+
+typedef struct {
+    uint8_t green;
+    uint8_t blue;
+    uint8_t red;
+} led_t;
+
+
+static led_t* current_led;
+static uint8_t bit_sequence[BITS_PER_LED];
+static uint8_t* current_bit;
+
+
+static void rainbow_gradient(void) {
+
+    for (size_t l = 0; l < NUM_LEDS; l++) {
+        pattern[l].green = 10;
+        pattern[l].blue = l;
+        pattern[l].red = NUM_LEDS - l;
+    }
+}
+
+
+static void led_to_bit_sequence(void) {
+
+    for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
+        const size_t shift = BITS_PER_CHANNEL - i - 1;
+        bit_sequence[i] = (current_led->green >> shift) & 1;
+    }
+
+    for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
+        const size_t shift = BITS_PER_CHANNEL - i - 1;
+        bit_sequence[i] = (current_led->blue >> shift) & 1;
+    }
+
+    for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
+        const size_t shift = BITS_PER_CHANNEL - i - 1;
+        bit_sequence[i] = (current_led->red >> shift) & 1;
+    }
+}
 
 
 static void clock_setup(void) {
@@ -43,12 +91,44 @@ static void timer_setup(void) {
 
 
 void tim3_isr(void) {
+
+    if (!timer_get_flag(TIM3, TIM_SR_CC3IF)) {
+        return;
+    }
+
+    timer_clear_flag(TIM3, TIM_SR_CC3IF);
+
+    timer_set_oc_value(
+            TIM3,
+            TIM_OC3,
+            *current_bit ? DUTY_CYCLE_1: DUTY_CYCLE_0);
+    timer_set_period(TIM3, BIT_PERIOD);
+    current_bit++;
+
+    if ((current_bit - bit_sequence) >= (BITS_PER_LED)) {
+
+        if ((current_led - pattern) == NUM_LEDS) {
+            timer_set_oc_value(TIM3, TIM_OC3, 0);
+            timer_set_period(TIM3, RESET_PERIOD);
+        } else {
+            current_led++;
+            led_to_bit_sequence();
+            current_bit = &bit_sequence[0];
+        }
+    }
 }
 
 
 int main(void) {
     clock_setup();
     gpio_setup();
+
+    rainbow_gradient();
+    current_led = &pattern[0];
+    led_to_bit_sequence();
+    current_bit = &bit_sequence[0];
+
     timer_setup();
+
     return 0;
 }
