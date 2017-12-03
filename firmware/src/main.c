@@ -10,18 +10,20 @@
 #define DUTY_CYCLE_1        67
 #define RESET_PERIOD        7500
 #define BIT_PERIOD          105
-#define NUM_LEDS            100
+#define NUM_LEDS            5
 #define BITS_PER_CHANNEL    8
 #define NUM_CHANNELS        3
 #define BITS_PER_LED        (BITS_PER_CHANNEL * NUM_CHANNELS)
 
 typedef struct {
     uint8_t green;
-    uint8_t blue;
     uint8_t red;
+    uint8_t blue;
 } led_t;
 
 
+static led_t pattern[NUM_LEDS] = {{.blue=255}, {.blue=255}, {.blue=255},
+                                  {.blue=255}, {.blue=255}};
 static led_t* current_led;
 static uint8_t bit_sequence[BITS_PER_LED];
 static uint8_t* current_bit;
@@ -31,8 +33,8 @@ static void rainbow_gradient(void) {
 
     for (size_t l = 0; l < NUM_LEDS; l++) {
         pattern[l].green = 10;
-        pattern[l].blue = l;
         pattern[l].red = NUM_LEDS - l;
+        pattern[l].blue = l;
     }
 }
 
@@ -41,17 +43,13 @@ static void led_to_bit_sequence(void) {
 
     for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
         const size_t shift = BITS_PER_CHANNEL - i - 1;
+
         bit_sequence[i] = (current_led->green >> shift) & 1;
-    }
 
-    for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
-        const size_t shift = BITS_PER_CHANNEL - i - 1;
-        bit_sequence[i] = (current_led->blue >> shift) & 1;
-    }
+        bit_sequence[i + BITS_PER_CHANNEL] = (current_led->red >> shift) & 1;
 
-    for (size_t i = 0; i < BITS_PER_CHANNEL; i++) {
-        const size_t shift = BITS_PER_CHANNEL - i - 1;
-        bit_sequence[i] = (current_led->red >> shift) & 1;
+        bit_sequence[i + (2 * BITS_PER_CHANNEL)] =
+            (current_led->blue >> shift) & 1;
     }
 }
 
@@ -123,7 +121,7 @@ int main(void) {
     clock_setup();
     gpio_setup();
 
-    rainbow_gradient();
+    // rainbow_gradient();
     current_led = &pattern[0];
     led_to_bit_sequence();
     current_bit = &bit_sequence[0];

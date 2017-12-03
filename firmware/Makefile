@@ -61,6 +61,12 @@ unpower:
 		              -ex 'target extended-remote $(BMP_PORT)' \
 		              -ex 'monitor tpwr disable'
 
+debug:
+	arm-none-eabi-gdb -ex 'target extended-remote $(BMP_PORT)' \
+					  -ex 'monitor swdp_scan' \
+					  -ex "attach 1" \
+				      -ex "file src/1bitsy-example.elf"
+
 lib:
 	$(Q)if [ ! "`ls -A libopencm3`" ] ; then \
 		printf "######## ERROR ########\n"; \
